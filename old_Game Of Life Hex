@@ -1,0 +1,914 @@
+import React, { Component } from 'react';
+
+import * as THREE from 'three';
+//import { GLTFLoader } from './GLTFLoader';
+//import { FBXLoader } from './FBXLoader';
+import { MapControls, OrbitControls } from "./controls/OrbitControls";
+import Stats from 'stats.js';
+import * as GeometryUtils from './three.js/examples/jsm/utils/GeometryUtils.js';
+import { FontLoader } from './three.js/examples/jsm/loaders/FontLoader.js';
+
+
+
+class Hex {
+    constructor(q, r, s) {
+        this.q = q;
+        this.r = r;
+        this.s = s;
+        if (Math.round(q + r + s) !== 0)
+            throw "q + r + s must be 0";
+    }
+    add(b) {
+        return new Hex(this.q + b.q, this.r + b.r, this.s + b.s);
+    }
+    subtract(b) {
+        return new Hex(this.q - b.q, this.r - b.r, this.s - b.s);
+    }
+    scale(k) {
+        return new Hex(this.q * k, this.r * k, this.s * k);
+    }
+    rotateLeft() {
+        return new Hex(-this.s, -this.q, -this.r);
+    }
+    rotateRight() {
+        return new Hex(-this.r, -this.s, -this.q);
+    }
+    static direction(direction) {
+        return Hex.directions[direction];
+    }
+    neighbor(direction) {
+        return this.add(Hex.direction(direction));
+    }
+    diagonalNeighbor(direction) {
+        return this.add(Hex.diagonals[direction]);
+    }
+    len() {
+        return (Math.abs(this.q) + Math.abs(this.r) + Math.abs(this.s)) / 2;
+    }
+    distance(b) {
+        return this.subtract(b).len();
+    }
+    round() {
+        var qi = Math.round(this.q);
+        var ri = Math.round(this.r);
+        var si = Math.round(this.s);
+        var q_diff = Math.abs(qi - this.q);
+        var r_diff = Math.abs(ri - this.r);
+        var s_diff = Math.abs(si - this.s);
+        if (q_diff > r_diff && q_diff > s_diff) {
+            qi = -ri - si;
+        }
+        else if (r_diff > s_diff) {
+            ri = -qi - si;
+        }
+        else {
+            si = -qi - ri;
+        }
+        return new Hex(qi, ri, si);
+    }
+    lerp(b, t) {
+        return new Hex(this.q * (1.0 - t) + b.q * t, this.r * (1.0 - t) + b.r * t, this.s * (1.0 - t) + b.s * t);
+    }
+    linedraw(b) {
+        var N = this.distance(b);
+        var a_nudge = new Hex(this.q + 1e-06, this.r + 1e-06, this.s - 2e-06);
+        var b_nudge = new Hex(b.q + 1e-06, b.r + 1e-06, b.s - 2e-06);
+        var results = [];
+        var step = 1.0 / Math.max(N, 1);
+        for (var i = 0; i <= N; i++) {
+            results.push(a_nudge.lerp(b_nudge, step * i).round());
+        }
+        return results;
+    }
+}
+
+
+
+class GOL extends Component {
+    constructor(props) {
+        super(props);
+        THREE.Object3D.DefaultUp = new THREE.Vector3(0,0,1);
+        const scene = new THREE.Scene();
+
+        const camera =  new THREE.PerspectiveCamera( 70, 240 / 135, 0.01, 2000 ) ;
+        camera.position.y = 0;
+        camera.position.z = 8;
+        camera.position.x = 0;
+        camera.layers.enable( 2 );
+        camera.up.set(0,0,1);
+        const renderer = new THREE.WebGLRenderer({alpha: false, antialias: false });
+
+        const controls = new MapControls( camera, renderer.domElement );
+        controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
+        controls.dampingFactor = 0.25;
+        //controls.screenSpacePanning = false;
+        controls.minDistance = 1;
+        controls.maxDistance = 150;
+
+
+        controls.enablePan = true;
+        controls.maxPolarAngle = Math.PI / 2 - 0.05;
+        controls.update();
+
+        this.camera = camera;
+        this.controls = controls;
+        this.container = React.createRef();
+        this.clock = new THREE.Clock();
+
+        //HEX FIELD  OPERATIONS//
+        this.field3D = new THREE.Object3D();
+        this.field3D.name = 'Field';
+        this.field3D.matrixAutoUpdate = false;
+        this.field3D.updateMatrix();
+        scene.add( this.field3D );
+
+        this.hexPolygonL = 0;
+        this.hexPolygonD = 0;
+        this.population = 0;
+
+        this.initStartFied = [];
+        this.gridInit = [];
+        this.delay = 0;
+        this.active = 0;
+        this.state = {
+            scene: scene,
+            renderer: renderer,
+            currentPopulation: 0,
+            previousPopulation: 0,
+            lastPosition: {},
+            clientWidth: 256,
+            clientHeight: 256,
+            mouse: {
+                x:0,
+                y:0
+            },
+            position: {
+                x:0,
+                y:0
+            },
+            hexSize: 0.25,
+            hexOrigin: {
+                x: 0,
+                y:0
+            },
+            round: 5,
+
+            cd: 0x3498db
+        };
+
+
+        let mixers = [];
+
+        this.mixers = mixers;
+
+
+        let stats = new Stats();
+        this.stats = stats;
+        this.stats.showPanel( 1 ); // 0: fps, 1: ms, 2: mb, 3+: custom
+        document.body.appendChild( this.stats.dom );
+    }
+
+    setPopulation = (cnt, grid) => {
+        this.setState({
+            currentPopulation: cnt,
+        })
+        this.population = grid;
+        console.log(grid)
+    }
+
+    Point = (x, y) => {
+        return {x: x, y: y}
+    }
+
+    Hex = (q, r) => {
+        return {q: q, r: r}
+    }
+
+    Cube = (x, y, z) => {
+        return {x: x, y: y, z: z}
+    }
+
+    hex_corner = (center, i) => {
+        var angle_deg = 60*i+30;
+        var angle_rad = Math.PI/180*angle_deg;
+        var x = center.x + this.state.hexSize * Math.cos(angle_rad);
+        var y = center.y + this.state.hexSize * Math.sin(angle_rad);
+        //console.log(this.Point(x, y))
+        return this.Point(x, y)
+    }
+
+    drawHex = (center) => {
+        let cellPoints = []
+        for(var i=0; i<=5; i++){
+            var start = this.hex_corner(center, i);
+            //var end = this.hex_corner(center, i + 1);
+            cellPoints.push(new THREE.Vector2 (start.x, start.y));
+        }
+        return cellPoints
+    }
+
+
+    drawHexV3 = (center) => {
+        let cellPoints = []
+        for(var i=0; i<=6; i++){
+            var start = this.hex_corner(center, i);
+            //var end = this.hex_corner(center, i + 1);
+            cellPoints.push(new THREE.Vector3 (start.x, start.y, 0));
+        }
+        return cellPoints
+    }
+
+    hexToPixel = (h) => {
+        //console.log(this.state.hexOrigin)
+        var hexOrigin = this.state.hexOrigin;
+        var x = this.state.hexSize * Math.sqrt(3) * (h.q + h.r/2) + hexOrigin.x;
+        var y = this.state.hexSize * 3/2 * h.r + hexOrigin.y;
+        return this.Point(x, y)
+    }
+
+    pixelToHex = (p) => {
+        var q = ((p.x - this.state.hexOrigin.x) * Math.sqrt(3)/3 - (p.y - this.state.hexOrigin.y)/ 3) / this.state.hexSize;
+        var r = (p.y - this.state.hexOrigin.y) * 2/3 / this.state.hexSize;
+        return this.hexRound(this.Hex(q, r))
+    }
+
+
+    cubeDir = (dir) => {
+        var cubeDir = [ this.Cube(-1, 1, 0), this.Cube(0, 1, -1), this.Cube(1, 0, -1), this.Cube(1, -1, 0), this.Cube(0, -1, 1), this.Cube(-1, 0, 1) ];
+        return cubeDir[dir];
+    }
+
+    cubeAdd = (a, b) => {
+        return this.Cube(a.x + b.x, a.y + b.y, a.z + b.z)
+    }
+
+    cubeNeighbor = (c, dir) => {
+        return this.cubeAdd(c, this.cubeDir(dir))
+    }
+
+    cubeToAxial = (c) => {
+        var q = c.x;
+        var r = c.z;
+        //console.log(q, r);
+        return this.Hex(q, r)
+    }
+
+    axialToCube = (h) => {
+        var x = h.q;
+        var z = h.r;
+        var y = -x-z;
+        //console.log(x, y, z);
+        return this.Cube(x, y, z)
+    }
+
+    cube_to_oddr = (c) => {
+        var q = c.x - (c.z - (c.z&1)) / 2;
+        var r = c.z;
+        //console.log(q, r);
+        return this.Hex(q, r)
+    }
+
+    oddr_to_cube = (h) => {
+        var x = h.q + (h.r - (h.r&1)) / 2;
+        var z = h.r;
+        var y = -x-z;
+        //console.log(x, y, z);
+        return this.Cube(x, y, z)
+    }
+
+    hexRound = (h) => {
+        return this.cubeRound(this.axialToCube(h));
+    }
+
+    cubeRound = (c) => {
+        var rx = Math.round(c.x);
+        var ry = Math.round(c.y);
+        var rz = Math.round(c.z);
+
+        var x_diff = Math.abs(rx - c.x);
+        var y_diff = Math.abs(ry - c.y);
+        var z_diff = Math.abs(rz - c.z);
+
+        if (x_diff > y_diff && x_diff > z_diff){
+            rx = -ry-rz;
+        } else if (y_diff > z_diff){
+            ry = -rx-rz;
+        } else {
+            rz = -rx-ry;
+        }
+
+        if(rx === -0){
+            rx = 0;
+        }
+        if(ry === -0){
+            ry = 0;
+        }
+        if(rz === -0){
+            rz = 0;
+        }
+        return this.Cube(rx, ry, rz)
+    }
+
+    cubeDir = (dir) => {
+        var cubeDir = [ this.Cube(-1, 1, 0), this.Cube(0, 1, -1), this.Cube(1, 0, -1), this.Cube(1, -1, 0), this.Cube(0, -1, 1), this.Cube(-1, 0, 1) ];
+        return cubeDir[dir];
+    }
+
+    cubeAdd = (a, b) => {
+        return this.Cube(a.x + b.x, a.y + b.y, a.z + b.z)
+    }
+
+    cubeNeighbor = (c, dir) => {
+        return this.cubeAdd(c, this.cubeDir(dir))
+    }
+
+    findNeighbors = (c) => {
+        //console.log("Finding Neighbours:");
+        let neigbors = [];
+        for(var i=0; i<6; i++){
+            var cube = this.cubeNeighbor(this.Cube(c.x, c.y, c.z), i);
+            cube.nameID = (""+cube.x+""+cube.y+""+cube.z+"");
+            neigbors.push(cube)
+            //draw neighbours start//
+            //var hex = this.cubeToAxial(cube);
+            //var center = this.hexToPixel(hex);
+            //this.fillHex(center, "yellow");
+            //this.drawHex(center);
+            //draw neighbours end//
+        }
+        //console.log(neigbors);
+        return neigbors;
+    }
+
+    cubeDistance = (a, b) =>{
+        return (Math.abs(a.x - b.x) + Math.abs(a.y - b.y) + Math.abs(a.z - b.z)) / 2;
+    }
+
+    lerp = (a, b, t) => {
+        return a + (b - a) * t
+    }
+
+    lerpCube = (a, b, t) => {
+        return this.Cube(this.lerp(a.x, b.x, t), this.lerp(a.y, b.y, t), this.lerp(a.z, b.z, t))
+    }
+
+    drawLineCube = (a, b) => {
+        var N = this.cubeDistance(a, b);
+        var results = [];
+        for(var i =0; i<= N; i++){
+            results.push(this.cubeRound(this.lerpCube(a, b, 1.0/N * i)));
+        }
+        return results
+    }
+
+
+    getHexParameters = () => {
+        var hexHeight = this.state.hexSize * 2;
+        var hexWidth = Math.sqrt(3)/2 * hexHeight;
+        var vertDist = hexHeight * 3/4;
+        var horizDist = hexWidth;
+        return {hexWidth: hexWidth, hexHeight: hexHeight, vertDist: vertDist, horizDist: horizDist}
+
+    }
+
+///DROW Section
+///
+///
+/// // drawGrid = () => {
+    //     var results = [];
+    //     var slash = this.state.round;
+    //     for(var r=-(slash); r<=(slash); r++){
+    //         for(var q=-(slash); q<=(slash);q++){
+    //             var cube = this.axialToCube(this.Hex(q, r));
+    //             results.push(cube);
+    //         }
+    //     }
+    //     return results
+    // }
+    //
+    drawHexPolygon = (center) => {
+        let hexPolygon = this.hexPolygon.clone();
+        hexPolygon.position.x = center.x;
+        hexPolygon.position.y = center.y;
+        hexPolygon.scale.x = 0.9;
+        hexPolygon.scale.y = 0.9;
+        this.state.scene.add( hexPolygon );
+    }
+
+    // removeEntity = (name) => {
+    //     let selectedObject = this.state.scene.getObjectByName(name);
+    //     this.state.scene.remove( selectedObject );
+    //     console.log("Obj3D remove in scene");
+    //     //this.animate();
+    // }
+    //
+    // createLabel = (text, x, y, z, size, color) => {
+    //     var canvas = document.createElement("canvas");
+    //     var context = canvas.getContext("2d");
+    //     canvas.width = 1;
+    //     canvas.height = 1;
+    //     context.font = size + "pt Arial";
+
+
+    //     var textWidth = 1;
+
+    //     //context.strokeStyle = "black";
+
+    //     context.textAlign = "center";
+    //     context.textBaseline = "middle";
+    //     context.fillStyle = "blue";
+    //     context.fillText(text, canvas.width / 2, canvas.height / 2);
+
+    //     var texture = new THREE.Texture(canvas);
+    //     texture.needsUpdate = true;
+
+    //     var material = new THREE.MeshBasicMaterial({
+    //         map : texture
+    //     });
+
+    //     var mesh = new THREE.Mesh(new THREE.PlaneGeometry(canvas.width, canvas.height, 10, 10), material);
+    //     mesh.overdraw = true;
+    //     // mesh.doubleSided = true;
+    //     mesh.position.x = x - canvas.width / 2;
+    //     mesh.position.y = y - canvas.height / 2;
+
+    //     return mesh;
+    // }
+
+    initGrid = (grid) => {
+        var hex;
+        var cube;
+        var coord;
+        //let addToField = [];
+        for(var i=0; i<=grid.length-1; i++){
+            hex = this.cubeToAxial(grid[ i ]);
+            //cube = this.axialToCube(hex);
+            coord = this.hexToPixel(hex)
+
+
+
+           if(grid[ i ].state){
+                const hexPolygon = this.hexPolygonL.clone();
+                hexPolygon.position.x = coord.x;
+                hexPolygon.position.y = coord.y;
+                hexPolygon.rotation.z = -Math.PI/2;
+                hexPolygon.scale.x = 1.2;
+                hexPolygon.scale.y = 1.2;
+                hexPolygon.name = grid[ i ].nameID;
+                hexPolygon.matrixAutoUpdate = false;
+                hexPolygon.updateMatrix();
+                this.field3D.add( hexPolygon );
+                //addToField.push(hexPolygon);
+           } else {
+                const hexPolygon = this.hexPolygonD.clone();
+                hexPolygon.position.x = coord.x;
+                hexPolygon.position.y = coord.y;
+                hexPolygon.rotation.z = -Math.PI/2;
+                hexPolygon.scale.x = 1.2;
+                hexPolygon.scale.y = 1.2;
+                hexPolygon.name = grid[ i ].nameID;
+                hexPolygon.matrixAutoUpdate = false;
+                hexPolygon.updateMatrix();
+                this.field3D.add( hexPolygon );
+           }
+
+        }
+        this.state.currentPopulation = 1;
+        return grid;
+    }
+
+    redrawGrid = (grid) => {
+        //console.log(grid)
+        //this.field3D = new THREE.Object3D();
+         // .getObjectByName(name);
+        // .remove( selectedObject );
+        var hex;
+        var cube;
+        var coord;
+        //let addToField = [];
+        for(var i=0; i<=grid.length-1; i++){
+            hex = this.cubeToAxial(grid[ i ]);
+            //cube = this.axialToCube(hex);
+            coord = this.hexToPixel(hex)
+
+           if(grid[ i ].state){
+                let obj = this.field3D.getObjectByName(grid[ i ].nameID);
+                this.field3D.remove( obj );
+                obj.geometry.dispose();
+                obj.material.dispose();
+                const hexPolygon = this.hexPolygonL.clone();
+                hexPolygon.position.x = coord.x;
+                hexPolygon.position.y = coord.y;
+                hexPolygon.rotation.z = -Math.PI/2;
+                hexPolygon.scale.x = 1.2;
+                hexPolygon.scale.y = 1.2;
+                hexPolygon.name = grid[ i ].nameID;
+                hexPolygon.matrixAutoUpdate = false;
+                hexPolygon.updateMatrix();
+                this.field3D.add( hexPolygon );
+           } else {
+                let obj = this.field3D.getObjectByName(grid[ i ].nameID);
+                this.field3D.remove( obj );
+                obj.geometry.dispose();
+                obj.material.dispose();
+                const hexPolygon = this.hexPolygonD.clone();
+                hexPolygon.position.x = coord.x;
+                hexPolygon.position.y = coord.y;
+                hexPolygon.rotation.z = -Math.PI/2;
+                hexPolygon.scale.x = 1.2;
+                hexPolygon.scale.y = 1.2;
+                hexPolygon.name = grid[ i ].nameID;
+                hexPolygon.matrixAutoUpdate = false;
+                hexPolygon.updateMatrix();
+                this.field3D.add( hexPolygon );
+           }
+
+        }
+
+        //console.log("Текущая популяция: "+this.state.currentPopulation)
+        //this.gridInit = grid;
+        this.state.currentPopulation += 1;
+        //return addToField;
+    }
+
+    makeHexagonalShape = (N) => {
+        let results = [];
+        for (let q = -N; q <= N; q++) {
+            for (let r = -N; r <= N; r++) {
+                let hex = new Hex(q, r, -q-r);
+                if (hex.len() <= N) {
+                    var cube = this.Cube(hex.q, hex.r, hex.s);
+                    cube.state = (Math.random() < 0.02);
+                    cube.neigbors = 0;
+                    cube.nameID = (""+cube.x+""+cube.y+""+cube.z+"");
+                    results.push(cube);
+                }
+            }
+        }
+        return results;
+    }
+
+
+    stepLife = (grid) => {
+        this.active = 0;
+        this.state.previousPopulation = this.state.currentPopulation;
+        //First version
+        const oldGrid = grid;
+        const newGrid = grid;
+        for(var i = 0; i < grid.length; i++) {
+                let n = this.findNeighbors(grid[i]);
+                let find = [];
+                let n2 = []
+                for(var j = 0; j < n.length; j++) {
+                    //const searchObject= carList.find((obj) => obj.nameID=="""");
+                    //find = grid.find((obj) => obj.nameID == n[i].nameID);
+                    find = grid.filter(function(v, i) {
+                         return (v.nameID == n[j].nameID );
+                      });
+                    if(find.length){
+                        if(find[0].state){
+                            n2.push(find)
+                        }
+
+                    }
+
+                }
+
+                grid[i].neigbors = n2.length;
+                newGrid[i].neigbors = n2.length;
+                //console.log(n2);
+                if(grid[i].state == true){
+
+                    if(grid[i].neigbors>2 || grid[i].neigbors<2){
+                        newGrid[i].state = false;
+                        //console.log(""+grid[i].nameID+": умер");
+                        this.active = 1;
+                    }
+
+                } else if (grid[i].state == false){
+                     if(grid[i].neigbors==2){
+                        newGrid[i].state = true;
+                        //console.log(""+grid[i].nameID+": ожил");
+                        this.active = 1;
+                    }
+                }
+
+                // if(grid[i].state != newGrid[i].state){
+                //     this.active = 1;
+                // }
+
+
+
+        }
+
+        if(this.active == 0){
+            console.log("Симуляция завершена");
+            console.log("Текущая популяция: "+this.state.currentPopulation)
+        } else {
+            console.log("Старт перерисовки");
+            //
+            this.gridInit = newGrid;
+            // this.redrawGrid = (newGrid);
+            // this.state.currentPopulation += 1;
+        }
+
+
+
+
+
+        return newGrid;
+        // First Version
+    }
+
+    getdelay = () => {
+        return 3000;
+    }
+
+    loop = (grid) => {
+        if(this.active){
+            let newgrid = this.stepLife(grid);
+            this.redrawGrid(newgrid);
+        }
+
+    }
+
+
+
+    statistics = () => {
+        console.log("Scene polycount:", this.state.renderer.info.render.triangles)
+        console.log("Active Drawcalls:", this.state.renderer.info.render.calls)
+        console.log("Textures in Memory", this.state.renderer.info.memory.textures)
+        console.log("Geometries in Memory", this.state.renderer.info.memory.geometries)
+    }
+
+    componentDidMount() {
+
+        this.state.scene.background = new THREE.Color().set('#795548');
+        this.state.scene.fog = new THREE.Fog( this.state.scene.background, 200, 500 );
+        // LIGHTS
+        this.hemiLight = new THREE.HemisphereLight( 0xffffff, 0xffffff, 0.1 );
+        this.hemiLight.color.setHSL( 0.6, 0.6, 1 );
+        this.hemiLight.groundColor.setHSL( 0.095, 0.75, 1 );
+        this.hemiLight.position.set( 0, 0, 5 );
+        this.state.scene.add( this.hemiLight );
+        // this.hemiLightHelper = new THREE.HemisphereLightHelper( this.hemiLight, 1 );
+        // this.state.scene.add( this.hemiLightHelper );
+
+        this.dirLight = new THREE.DirectionalLight( 0xffffff, 1 );
+        this.dirLight.color.setHSL( 0.1, 1, 0.95 );
+        this.dirLight.position.set( 3, 3, 3 );
+        this.dirLight.position.multiplyScalar( 10 );
+        this.state.scene.add( this.dirLight );
+        this.dirLight.castShadow = false;
+        this.dirLight.shadow.mapSize.width = 512;
+        this.dirLight.shadow.mapSize.height = 512;
+        this.shadowDistance = 20;
+        this.dirLight.shadow.camera.left = -this.shadowDistance;
+        this.dirLight.shadow.camera.right = this.shadowDistance;
+        this.dirLight.shadow.camera.top = this.shadowDistance;
+        this.dirLight.shadow.camera.bottom = -this.shadowDistance;
+        this.dirLight.shadow.camera.far = 3500;
+        this.dirLight.shadow.bias = -0.00001;
+        // this.dirLightHeper = new THREE.DirectionalLightHelper( this.dirLight, 1 );
+        // this.state.scene.add( this.dirLightHeper );
+
+        // SKYDOME
+        this.vertexShader = document.getElementById( 'vertexShader' ).textContent;
+        this.fragmentShader = document.getElementById( 'fragmentShader' ).textContent;
+        this.uniforms = {
+            topColor:    { value: new THREE.Color( 0x0077ff ) },
+            bottomColor: { value: new THREE.Color( 0xE1F5FE ) },
+            offset:      { value: -20 },
+            exponent:    { value: 0.8 }
+        };
+        this.uniforms.topColor.value.copy( this.hemiLight.color );
+        //this.state.scene.fog.color.copy( this.uniforms.bottomColor.value );
+        this.skyGeo = new THREE.SphereBufferGeometry( 1000, 32, 15 );
+        this.skyGeo.rotateX(-Math.PI/2);
+
+        this.skyMat = new THREE.ShaderMaterial( { vertexShader: this.vertexShader, fragmentShader: this.fragmentShader, uniforms: this.uniforms, side: THREE.BackSide } );
+        this.sky = new THREE.Mesh( this.skyGeo, this.skyMat );
+        this.sky.rotateX(-Math.PI/2);
+        this.sky.name = 'SKYDOME';
+        this.state.scene.add( this.sky );
+
+        // Helpers
+        //const gridHelper = new THREE.GridHelper( 1000, 20 );
+        //gridHelper.up.set(0,0,1);
+        //this.state.scene.add( gridHelper );
+
+
+
+        const axesHelper = new THREE.AxesHelper( 5 );
+        axesHelper.position.set( 0.0001, 0.0001, 0.0001 );
+        this.state.scene.add( axesHelper );
+
+
+        // GROUND
+        this.geometry = new THREE.PlaneBufferGeometry( 100, 100 );
+        this.materialStandard = new THREE.MeshStandardMaterial( {
+            color: 0x483720
+        } );
+        this.ground = new THREE.Mesh( this.geometry, this.materialStandard );
+        this.ground.name = 'GROUND';
+        //this.ground.rotation.x = -Math.PI/2;
+        this.ground.position.z = -0.1;
+        this.ground.receiveShadow = true;
+        this.state.scene.add( this.ground );
+
+
+        ///HEXAGON
+        // this.cellGroup = new THREE.Object3D();
+        // this.cellGroup.name = 'Map'
+        // this.state.scene.add( this.cellGroup );
+
+
+        this.state.renderer.setPixelRatio( window.devicePixelRatio );
+        this.state.renderer.gammaInput = true;
+        this.state.renderer.gammaOutput = true;
+        this.state.renderer.shadowMap.enabled = true;
+
+
+
+
+
+
+        this.container.appendChild(this.state.renderer.domElement);
+
+        //console.log(document.scrollingElement)
+
+
+        if(this.container){
+            this.updateScreenSize();
+        }
+        window.addEventListener("resize", this.updateScreenSize.bind(this));
+        //window.addEventListener("mousedown", this.newField.bind(this), false);
+
+
+
+        //HEX FIELD CREATION//
+        //const hexCurve = new THREE.SplineCurve(this.drawHex(this.Point(0,0)));
+
+        //let shape = new THREE.Shape(hexCurve.getSpacedPoints(5));
+        //let geometry = new THREE.ShapeGeometry( shape );
+        //let mesh = new THREE.Mesh( geometry );
+        //
+        //
+        //Circle OBJECT
+        //const circleGeo = new THREE.CircleGeometry( 0.2, 6 );
+
+
+        //const materialL = new THREE.MeshBasicMaterial( { color: 0xDD9045 } );
+        //const materialD = new THREE.MeshBasicMaterial( { color: 0x5C4D2F } );
+
+        //const circleL = new THREE.Mesh( circleGeo, materialL );
+        //const circleD = new THREE.Mesh( circleGeo, materialD );
+        //material.needsUpdate = true;
+
+
+        //mesh.material.needsUpdate = true;
+
+        //this.hexPolygonL = circleL;
+
+        //this.hexPolygonD = circleD;
+
+        //INIT FIEELD MAP ARRAY GRID
+        //this.initStartFied = this.makeHexagonalShape(6);
+        //console.log(this.initStartFied)
+
+        //ADD 3D Obj on Grid coord (grid coord - cube formst - x,y,z)
+        //this.gridInit = this.initGrid(this.initStartFied, true);
+
+        //this.step = this.stepLife(this.gridInit);
+        //this.active = 1;
+
+
+        //var x = window.innerWidth / 2 -300;
+        //var y = window.innerHeight / 2 -300;
+        //const mesh = this.createLabel("HELLO WORLD", 0, 0, 0, 1, "black");
+        //this.state.scene.add( mesh );
+        //
+
+        // const ctx = document.createElement('canvas').getContext('2d');
+        // this.container.appendChild(ctx.canvas);
+        // //document.body.appendChild(ctx.canvas);
+        // ctx.canvas.width = 256;
+        // ctx.canvas.height = 256;
+        // ctx.fillStyle = '#FFF';
+        // ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        //
+        //
+        //const points = GeometryUtils.gosper( 1 );
+        //console.log(points)
+        //
+        //
+        //
+        //
+        //
+        //
+        //
+
+        // const points = this.drawHexV3(this.Point(0,0));
+
+        // console.log(points)
+
+
+        // const material = new THREE.LineBasicMaterial({
+        //     color: 0x5C4D2F
+        // });
+
+
+
+        // const geometry = new THREE.BufferGeometry().setFromPoints( points );
+
+        // const line = new THREE.Line( geometry, material );
+
+
+        // this.state.scene.add( line );
+
+        let mesh = dcText("Hello, world", 15, 20, 50, 0x000000, 0xcccccc);
+
+
+        this.start()
+
+    }
+
+
+    componentWillUnmount() {
+        window.removeEventListener("resize", this.updateScreenSize.bind(this));
+        this.container.removeChild(this.state.renderer.domElement)
+        this.stop()
+    }
+
+
+    updateScreenSize() {
+        //console.log('resizi window');
+        let up_w = window.innerWidth;
+        let up_h = window.innerHeight-100;
+        this.camera.aspect = up_w / up_h;
+        this.camera.updateProjectionMatrix();
+        this.state.renderer.setSize( up_w, up_h );
+
+    }
+
+    start = () => {
+        if (!this.frameId) {
+          this.frameId = requestAnimationFrame(this.animate)
+        }
+    }
+
+    stop = () => {
+        cancelAnimationFrame(this.frameId)
+    }
+
+    animate = () => {
+        this.stats.begin();
+
+        this.delta = this.clock.getDelta();
+        this.timer = Date.now() * 0.01;
+
+        // this.delay += this.delta;
+        // if(this.delay>1){
+        //     //console.log(this.delay)
+        //     this.delay = 0;
+        //     if(this.active && this.state.previousPopulation != this.state.currentPopulation){
+        //         this.loop(this.gridInit);
+        //     }
+        // }
+
+
+
+        // if(this.state.currentPopulation>this.state.previousPopulation){
+
+        //     let population = this.stepLife(this.population);
+        //     if(population == this.population){
+        //         //this.drawField(population);
+        //     }
+
+        // }
+
+
+        this.renderScene(this.delta);
+
+        this.stats.end();
+        this.frameId = window.requestAnimationFrame(this.animate)
+    }
+
+    renderScene = () => {
+        this.state.renderer.render(this.state.scene, this.camera)
+
+    }
+
+  render() {
+
+    return (
+            <div
+                className="App-intro"
+                ref={thisNode => this.container=thisNode}
+            />
+    )
+  }
+
+}
+
+export default GOL;

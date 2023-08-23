@@ -1,0 +1,11 @@
+Model Information:
+* title:	Paragon Pirate Skeleton Sailor 35 animations
+* source:	https://sketchfab.com/3d-models/paragon-pirate-skeleton-sailor-35-animations-5f880ef37cbf485ca609d25c49b56ff4
+* author:	Prizrakh (https://sketchfab.com/prizrakh)
+
+Model License:
+* license type:	CC-BY-NC-4.0 (http://creativecommons.org/licenses/by-nc/4.0/)
+* requirements:	Author must be credited. No commercial use.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Paragon Pirate Skeleton Sailor 35 animations" (https://sketchfab.com/3d-models/paragon-pirate-skeleton-sailor-35-animations-5f880ef37cbf485ca609d25c49b56ff4) by Prizrakh (https://sketchfab.com/prizrakh) licensed under CC-BY-NC-4.0 (http://creativecommons.org/licenses/by-nc/4.0/)
