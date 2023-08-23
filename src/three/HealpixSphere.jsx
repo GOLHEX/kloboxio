@@ -58,7 +58,7 @@ class HealpixSphere {
     const uv = new Float32Array([1,0], [0,0], [1,1], [0,0], [0,1], [1,1], [1,0], [0,0], [0,1], [1,1], [1,0], [0,0], [0,1], [1,1], [1,0], [0,0], [0,1], [1,1], [1,0], [0,0], [0,1], [1,1], [1,0], [0,0], [0,1], [1,1], [1,0], [0,0], [0,1], [1,1]);
 
     const geometry = new THREE.BufferGeometry();
-
+    console.log(JSON.stringify(geometry));
     const positions = [];
     const normals = [];
     const uvsFlat = [];
@@ -96,6 +96,9 @@ class HealpixSphere {
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
     geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
     geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvsFlat, 2));
+
+    geometry.computeVertexNormals();
+    geometry.computeBoundingSphere();
 
     return geometry;
   }

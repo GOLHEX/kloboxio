@@ -253,7 +253,7 @@ class Tetra extends Component {
         const healpixSphereGeometry = new HealpixSphere(12, 12).geometry;
         const materialHS = new THREE.MeshBasicMaterial({ color: 0xffffff }); // Выберите подходящий материал
         const healpixSphereMesh = new THREE.Mesh(healpixSphereGeometry, materialHS);
-
+        console.log(healpixSphereMesh);
         this.state.scene.add(healpixSphereMesh); // Добавление объекта в сцену
 
         // GROUND
