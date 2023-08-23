@@ -1098,7 +1098,7 @@ class GOL extends React.Component {
                 }
 
             }
-            //this.animate()
+            this.animate()
     }
 
     keyup = (e) => {
@@ -1106,8 +1106,9 @@ class GOL extends React.Component {
           e.code == "Space" ||
           e.keyCode == 32
       ) {
-        console.log("Press spacebar")
-        this.active = !this.active;
+            this.active = !this.active;
+            this.nextStep;
+            //console.log("Press spacebar")
       }
     }
 
@@ -1557,9 +1558,10 @@ class GOL extends React.Component {
     return (
         <W>
             <div
-                className="App-intro"
                 onClick={this._onClick}
                 ref={thisNode => this.container=thisNode}
+                onKeyDown={this.start}
+                onKeyUp={this.stop}
             />
         </W>
     )

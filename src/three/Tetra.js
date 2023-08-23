@@ -176,7 +176,19 @@ class Tetra extends Component {
         // console.log(characterControls);
         // console.log(this.state.characterControls);
         // console.log(this.characterControls);
-        this.HealpixSphere = new HealpixSphere(200,30);
+
+
+        this.HealpixSphere = new HealpixSphere(12,12);
+        console.log(this.HealpixSphere);
+
+
+        this.HealpixSphereBG = new THREE.SphereGeometry(1);
+        console.log(this.HealpixSphereBG);
+        //this.materialH = new THREE.MeshBasicMaterial({ color: 0xffffff }); // Выберите подходящий материал
+        //this.healpixSphereMesh = new THREE.Mesh(this.HealpixSphere, this.materialH);
+
+        //scene.add(this.healpixSphereMesh); // Добавление объекта в сцену
+        
         
 
     }
@@ -235,15 +247,19 @@ class Tetra extends Component {
 
         const axesHelper = new THREE.AxesHelper( 5 );
         this.state.scene.add( axesHelper );
-        this.state.scene.add(this.HealpixSphere);
+
+
+        //HEALPIXSPHERE
+        const healpixSphereGeometry = new HealpixSphere(12, 12).geometry;
+        const materialHS = new THREE.MeshBasicMaterial({ color: 0xffffff }); // Выберите подходящий материал
+        const healpixSphereMesh = new THREE.Mesh(healpixSphereGeometry, materialHS);
+
+        this.state.scene.add(healpixSphereMesh); // Добавление объекта в сцену
 
         // GROUND
         this.geometry = new THREE.PlaneBufferGeometry( 1000, 1000 );
 
         const textureLoader = new THREE.TextureLoader();
-
-
-
 
         const diffuse = textureLoader.load( 'textures/Ground037_1K-JPG/Ground037_1K_Color.jpg' );
         const displacementMap = textureLoader.load( 'textures/Ground054_4K-JPG/Ground054_4K_Displacement.jpg' );
@@ -254,13 +270,9 @@ class Tetra extends Component {
         diffuse.wrapT = THREE.RepeatWrapping;
         diffuse.repeat.set( 300, 300 );
 
-    displacementMap.wrapS = THREE.RepeatWrapping;
+        displacementMap.wrapS = THREE.RepeatWrapping;
         displacementMap.wrapT = THREE.RepeatWrapping;
         displacementMap.repeat.set( 300, 300 );
-/*  
-        aoMap.wrapS = THREE.RepeatWrapping;
-        aoMap.wrapT = THREE.RepeatWrapping;
-        aoMap.repeat.set( 10, 10 );*/
 
         normalMap.wrapS = THREE.RepeatWrapping;
         normalMap.wrapT = THREE.RepeatWrapping;

@@ -1,6 +1,4 @@
 import * as THREE from 'three';
-import { Face3 } from 'three';
-
 
 class HealpixSphere {
   constructor(radius, detail) {
@@ -14,20 +12,15 @@ class HealpixSphere {
     const b = Math.sin(theta) * Math.sin(phi);
     const c = Math.cos(theta);
 
-    // const vertices = [
-    //   [0, 1, 0],
-    //   [-a, b, c], [a, b, c], [a, b, -c], [-a, b, -c],
-    //   [0, 0, 1], [1, 0, 0], [0, 0, -1], [-1, 0, 0],
-    //   [-a, -b, c], [a, -b, c], [a, -b, -c], [-a, -b, -c],
-    //   [0, -1, 0]
-    // ];
-    const vertices = new Float32Array( [
+
+    const vertices =  [
       [0, 1, 0],
       [-a, b, c], [a, b, c], [a, b, -c], [-a, b, -c],
       [0, 0, 1], [1, 0, 0], [0, 0, -1], [-1, 0, 0],
       [-a, -b, c], [a, -b, c], [a, -b, -c], [-a, -b, -c],
       [0, -1, 0]
-    ] );
+    ];
+
 
     const faces = [
       [0, 1, 2], [1, 5, 2],
@@ -62,37 +55,32 @@ class HealpixSphere {
       [[1, 0], [0, 0], [1, 1]], [[0, 0], [0, 1], [1, 1]],
       [[1, 0], [0, 0], [1, 1]], [[0, 0], [0, 1], [1, 1]]
     ];
+    const uv = new Float32Array([1,0], [0,0], [1,1], [0,0], [0,1], [1,1], [1,0], [0,0], [0,1], [1,1], [1,0], [0,0], [0,1], [1,1], [1,0], [0,0], [0,1], [1,1], [1,0], [0,0], [0,1], [1,1], [1,0], [0,0], [0,1], [1,1], [1,0], [0,0], [0,1], [1,1]);
 
     const geometry = new THREE.BufferGeometry();
-
-
-   
-    
 
     const positions = [];
     const normals = [];
     const uvsFlat = [];
 
-    function project(v) {
+    function project(v, faceIndex) {
       const normalizedV = v.normalize().clone();
       positions.push(normalizedV.x, normalizedV.y, normalizedV.z);
       normals.push(normalizedV.x, normalizedV.y, normalizedV.z);
-      //why i trow error here?  uvsFlat.push(...uvs[positions.length / 3 - 1]); 
-
-      uvsFlat.push(...uvs[parseInt(positions.length / 3) - 1]);
+      uvsFlat.push(...uvs[faceIndex]);
     }
 
-    function makeFace(v1, v2, v3) {
+    function makeFace(v1, v2, v3, faceIndex) {
       const index = positions.length / 3;
-      project(v1);
-      project(v2);
-      project(v3);
+      project(v1, faceIndex);
+      project(v2, faceIndex);
+      project(v3, faceIndex);
       geometry.setIndex([index, index + 1, index + 2]);
     }
 
     for (let i = 0, l = vertices.length; i < l; i++) {
       const v = vertices[i];
-      project(new THREE.Vector3(v[0], v[1], v[2]));
+      project(new THREE.Vector3(v[0], v[1], v[2]), i);
     }
 
     for (let i = 0; i < faces.length; i++) {
@@ -100,7 +88,8 @@ class HealpixSphere {
       makeFace(
         new THREE.Vector3().fromArray(positions, f[0] * 3),
         new THREE.Vector3().fromArray(positions, f[1] * 3),
-        new THREE.Vector3().fromArray(positions, f[2] * 3)
+        new THREE.Vector3().fromArray(positions, f[2] * 3),
+        i
       );
     }
 
@@ -108,8 +97,8 @@ class HealpixSphere {
     geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
     geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvsFlat, 2));
 
-
     return geometry;
   }
 }
+
 export default HealpixSphere;
