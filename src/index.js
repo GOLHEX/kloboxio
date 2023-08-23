@@ -1,11 +1,8 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
-//import 'bootstrap/dist/css/bootstrap.min.css';
-//import 'font-awesome/css/font-awesome.min.css';
-//import 'bootstrap-css-only/css/bootstrap.min.css'; 
-//import 'mdbreact/dist/css/mdb.css';
+import { createRoot } from 'react-dom/client';
 import App from './App';
 import registerServiceWorker from './registerServiceWorker';
 
-ReactDOM.render(<App />, document.getElementById('root'));
+const root = createRoot(document.getElementById('root'));
+root.render(<App />);
 registerServiceWorker();
