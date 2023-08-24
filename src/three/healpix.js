@@ -26,9 +26,6 @@ export default class HEALPiX {
         this.uvsFlat = [];
         this.midpoints = [];
         this.positionAttribute = [];
-        this.geometry = new THREE.BufferGeometry();
-        this.geometry.vertices = [];
-        this.geometry.name = 'HEALPiX';
         this.uv = [];
         this.colors = [
             [0x33D5C0, 0xE68D78],
@@ -47,20 +44,9 @@ export default class HEALPiX {
         for (let i = 0; i < 12; i++) {
             this.materials.push(new THREE.MeshBasicMaterial({ color: random(...this.shuffledColors[i]) }));
           }
-        // const colors = [
-        //   [0x33D5C0, 0xE68D78],
-        //   [0x932323, 0x434770],
-        //   [0xCF9F6C, 0xFE4C04],
-        //   [0x3F403B, 0xD93E31],
-        //   [0x210038, 0xE06C50],
-        //   [0x5C9B52, 0xD9C02E],
-        //   [0xA8C65D, 0xF44085],
-        //   [0xF94302, 0x44303B]
-        // ];
-        
-        // for (let i = 0; i < 12; i++) {
-        //   this.materials.push(new THREE.MeshBasicMaterial({ color: random(...colors[i % colors.length]) }));
-        // }
+          this.geometry = new THREE.BufferGeometry();
+          this.geometry.vertices = [];
+          this.geometry.name = 'HEALPiX';
         this.createGeometry();
     }
 
@@ -75,10 +61,10 @@ export default class HEALPiX {
     project = (v) => {
         v = v.normalize().clone();
         v.index = this.geometry.vertices.push(v) - 1;
-        this.positions.push(v.x, v.y, v.z);
-        v = v.multiplyScalar(this.radius);
-        this.positionAttribute.push(v.x, v.y, v.z);
-       // this.geometry.index.push(v.index);
+        //this.positions.push(v.x, v.y, v.z);
+        //v = v.normalize().clone().multiplyScalar(this.radius);
+        //this.positionAttribute.push(v.x, v.y, v.z);
+        //this.geometry.setIndex(v.index);
         return v;
     }
 
@@ -117,20 +103,20 @@ export default class HEALPiX {
                     this.indices.push(v1.index, v2.index, v3.index);
             
                     // Добавление UV-координат
-                    this.uvs.push(uv1.x, uv1.y);
-                    this.uvs.push(uv2.x, uv2.y);
-                    this.uvs.push(uv3.x, uv3.y);
+                    this.uvsFlat.push(uv1.x, uv1.y);
+                    this.uvsFlat.push(uv2.x, uv2.y);
+                    this.uvsFlat.push(uv3.x, uv3.y);
 
-
+                    this.verticesSubdivided.push(v1.x, v1.y, v1.z);
+                    this.verticesSubdivided.push(v2.x, v2.y, v2.z);
+                    this.verticesSubdivided.push(v3.x, v3.y, v3.z);
 
                     // Добавление групп материалов
                     if (this.materials.length > 1) {
                         this.geometry.addGroup(this.indices.length - 3, +3, matIdx);
                     }
             
-                    this.verticesSubdivided.push(v1.x, v1.y, v1.z);
-                    this.verticesSubdivided.push(v2.x, v2.y, v2.z);
-                    this.verticesSubdivided.push(v3.x, v3.y, v3.z);
+
         } else {
             //console.log("vertx: "+v1, v2, v3, "uvs: "+uv1, uv2, uv3, "matindex: "+matIdx);
             // split face into 4 smaller faces
@@ -195,21 +181,22 @@ export default class HEALPiX {
         // subdivided faces
         faces.forEach((f, i) => {
             this.uv = uvs[i];
-            for (var j = 0; j < 3; j++) {
+            for (let j = 0; j < 3; j++) {
                 this.uv[j] = new THREE.Vector2(this.uv[j][0], this.uv[j][1]);
             }
+            //this.uvw.push(this.uv[0], this.uv[1], this.uv[2]);
             this.makeFace(this.geometry.vertices[f[0]], this.geometry.vertices[f[1]], this.geometry.vertices[f[2]], this.uv[0], this.uv[1], this.uv[2], Math.floor(i/2), this.detail);
         });
 
-        this.geometry.setIndex(this.indices);
-        this.geometry.setAttribute('vertices', new THREE.Float32BufferAttribute(this.verticesSubdivided, 3));
+        //this.geometry.setIndex(this.indices);
+        //this.geometry.setAttribute('vertices', new THREE.Float32BufferAttribute(this.verticesSubdivided, 3));
         //this.geometry.setAttribute('position', new THREE.Float32BufferAttribute(this.positions, 3));
-        this.geometry.setAttribute('position', new THREE.Float32BufferAttribute(this.positionAttribute, 3));
-        this.geometry.setAttribute('uv', new THREE.Float32BufferAttribute(this.uvs, 2));
+        this.geometry.setAttribute('position', new THREE.Float32BufferAttribute(this.verticesSubdivided, 3));
+        this.geometry.setAttribute('uv', new THREE.Float32BufferAttribute(this.uvsFlat, 2));
 
         this.geometry.computeVertexNormals();
         this.geometry.computeBoundingSphere();
 
-        //console.log(this.geometry);
+        console.log(this.geometry);
     }
 }

@@ -159,8 +159,8 @@ class Tetra extends Component {
         this.vertexShader = document.getElementById( 'vertexShader' ).textContent;
         this.fragmentShader = document.getElementById( 'fragmentShader' ).textContent;
         this.uniforms = {
-            topColor:    { value: new THREE.Color( 0x0077ff ) },
-            bottomColor: { value: new THREE.Color( 0xE1F5FE ) },
+            topColor:    { value: new THREE.Color( 0xD34511 ) }, 
+            bottomColor: { value: new THREE.Color( 0x362D6A ) }, 
             offset:      { value: -20 },
             exponent:    { value: 0.8 }
         };
@@ -184,26 +184,6 @@ class Tetra extends Component {
 
         //HEALPIXSPHERE
         this.updateSphere();
-        //this.HealpixSphere = new HEALPiX(this.state.HEALPiX.radius, this.state.HEALPiX.detail);
-
-
-        // this.HealpixSphereGeo = this.HealpixSphere.geometry;
-        // this.HealpixSphereGeo.attributes.position.normalized  = true;
-        // this.healpixSphereMesh = new THREE.Mesh(this.HealpixSphereGeo, this.HealpixSphere.materials);
-        // this.healpixSphereMesh.rotation.y = -Math.PI/2;
-        // this.healpixSphereMesh.rotation.x = Math.PI/1;
-        // this.healpixSphereMesh.rotation.z = Math.PI/1;
-        // this.state.scene.add(this.healpixSphereMesh); // Добавление объекта в сцену
-
-
-        // const healpixSphereGeometry = new HealpixSphere(12, 12).geometry;
-        // const materialHS = new THREE.MeshBasicMaterial({ color: 0xffffff }); // Выберите подходящий материал
-        // const healpixSphereMesh = new THREE.Mesh(healpixSphereGeometry, materialHS);
-        
-        // this.state.scene.add(healpixSphereMesh); // Добавление объекта в сцену
-        //console.log(this.state.scene);
-        
-        //console.log(this.state.scene);
 
         // GROUND
         this.geometry = new THREE.PlaneBufferGeometry( 1000, 1000 );
@@ -228,7 +208,7 @@ class Tetra extends Component {
         normalMap.repeat.set( 300, 300 );
 
         this.materialStandard = new THREE.MeshStandardMaterial( {
-            color: 0xffffff,
+            color: 0x335578,
             map: diffuse,
 
 
@@ -331,19 +311,69 @@ class Tetra extends Component {
         this.HealpixSphere = new HEALPiX(this.state.HEALPiX.radius, this.state.HEALPiX.detail);
         console.log('HealpixSphere updated!');
 
-
         this.state.scene.remove(this.healpixSphereMesh);
 
         this.HealpixSphereGeo = this.HealpixSphere.geometry;
         this.HealpixSphereGeo.attributes.position.normalized  = true;
-        this.healpixSphereMesh = new THREE.Mesh(this.HealpixSphereGeo, this.HealpixSphere.materials);
-        this.healpixSphereMesh.rotation.y = -Math.PI/1;
-        this.healpixSphereMesh.rotation.x = Math.PI/1;
-        this.healpixSphereMesh.rotation.z = Math.PI/1;
+        this.HealpixSphereGeo.attributes.uv.normalized  = true;
+        this.HealpixSphereGeo.computeVertexNormals();
 
+        this.Ironmaterials = [];
+        for (let i = 0; i < 12; i++) {
+            //console.log('textures/desert/desert-'+parseInt([i])+'.jpg')
+            this.Ironmaterials.push(new THREE.MeshBasicMaterial({ 
+                map: new THREE.TextureLoader().load('textures/iron/iron-'+String(i).padStart(2, '0')+'.jpg'),
+                side: THREE.DoubleSide }));
+        }
+        this.healpixSphereMesh = new THREE.Mesh(this.HealpixSphereGeo, this.Ironmaterials);
+        // this.Desertmaterials = [];
+        // for (let i = 0; i < 12; i++) {
+        //     //console.log('textures/desert/desert-'+parseInt([i])+'.jpg')
+        //     this.Desertmaterials.push(new THREE.MeshBasicMaterial({ 
+        //         map: new THREE.TextureLoader().load('textures/desert/desert-'+String(i).padStart(2, '0')+'.jpg'),
+        //         side: THREE.DoubleSide }));
+        // }
+        // this.healpixSphereMesh = new THREE.Mesh(this.HealpixSphereGeo, this.Desertmaterials);
 
+        // this.CMBmaterials = [];
+        // for (let i = 0; i < 12; i++) {
+        //     console.log('textures/CMB/cmb-inp-09-'+parseInt([i])+'.jpg')
+        //     this.CMBmaterials.push(new THREE.MeshBasicMaterial({ 
+        //         map: new THREE.TextureLoader().load('textures/CMB/cmb-inp-10-'+String(i).padStart(2, '0')+'.jpg'),
+        //         side: THREE.DoubleSide }));
+        // }
+        //this.healpixSphereMesh = new THREE.Mesh(this.HealpixSphereGeo, this.CMBmaterials);
+        // this.uvMaterial = new THREE.MeshBasicMaterial({
+        //     map: new THREE.TextureLoader().load('textures/uv_grid_opengl.jpg'), // Загрузите текстуру с UV-сеткой
+        //     side: THREE.DoubleSide
+        // });
+        //this.healpixSphereMesh = new THREE.Mesh(this.HealpixSphereGeo, this.uvMaterial);
+        //Random Colors
+        //this.healpixSphereMesh = new THREE.Mesh(this.HealpixSphereGeo, this.HealpixSphere.materials);
+        //this.healpixSphereMesh.rotation.y = -Math.PI/1;
+        //this.healpixSphereMesh.rotation.x = Math.PI/1;
+        //this.healpixSphereMesh.rotation.z = Math.PI/1;
         this.healpixSphereMesh.updateMatrix();
         this.state.scene.add(this.healpixSphereMesh); // Добавление объекта в сцену
+
+
+        // const mesh = new THREE.Mesh(this.HealpixSphereGeo, material);
+        // this.state.scene.add(mesh);
+
+        // const normalsHelper = new THREE.VertexNormalsHelper(this.healpixSphereMesh, 0.5); // 0.5 - длина нормалей
+        // this.state.scene.add(normalsHelper);
+
+        // this.uvMaterial = new THREE.MeshBasicMaterial({
+        //     map: new THREE.TextureLoader().load('textures/uv_grid_opengl.jpg'), // Загрузите текстуру с UV-сеткой
+        //     side: THREE.DoubleSide
+        //   });
+        // this.HealpixSphereGeo.attributes.uv.normalized  = true;
+        // this.UVmesh = new THREE.Mesh(this.HealpixSphereGeo, this.uvMaterial);
+        // this.UVmesh.updateMatrix();
+        // this.state.scene.remove(this.UVmesh);
+        // this.state.scene.add(this.UVmesh);
+          
+
 
 
 

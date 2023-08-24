@@ -1,7 +1,9 @@
 import React, { Component } from "react"
 import * as THREE from 'three'
 import {  OrbitControls } from "./controls/OrbitControls";
-import { A, D, DIRECTIONS, S, W } from './utils'
+//import { A, D, DIRECTIONS, S, W } from './utils'
+const { W, A, S, D, DIRECTIONS } = require('./utils');
+
 
 
 export default class CharacterControls extends Component {
