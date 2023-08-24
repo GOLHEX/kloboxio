@@ -11,9 +11,11 @@ import * as SkeletonUtils from './SkeletonUtils';
 import FBXLoader from 'three-fbx-loader'
 
 import ModelLoader from './ModelLoader';
-import HealpixSphere from './HealpixSphere.jsx';
-
+//import HealpixSphere from './HealpixSphere.jsx';
+import * as healpix from '@hscmap/healpix';
+import HEALPiX from './healpix';
 import W from "../wrapper/W"
+import { Material } from "three";
 
 
 
@@ -31,10 +33,10 @@ class Tetra extends Component {
 
         const controls = new OrbitControls( camera, renderer.domElement );
         controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
-        //controls.dampingFactor = 0.25;
+        controls.dampingFactor = 0.25;
         //controls.screenSpacePanning = false;
-        controls.minDistance = 5;
-        controls.maxDistance = 15;
+        controls.minDistance = 1;
+        controls.maxDistance = 100;
 
 
         controls.enablePan = false;
@@ -44,68 +46,10 @@ class Tetra extends Component {
         this.lastPosition;
         this.socket = this.props.io;
 
-///////Models Load
-
-
         let mixers = [];
-
-        // let loader = new GLTFLoader();
-        // loader.load('models/gltf/Soldier.glb', function (gltf) {
-        //     const model = gltf.scene;
-        //     model.traverse(function (object) {
-        //         if (object.isMesh) object.castShadow = true;
-        //     });
-        //     //scene.add(model);
-
-        //     const gltfAnimations = gltf.animations;
-
-        //     const mixer = new THREE.AnimationMixer(model);
-
-        //     const animationsMap = new Map();
-
-        //     gltfAnimations.filter(function (a) { return a.name != 'TPose'; }).forEach(function (a) {
-        //         animationsMap.set(a.name, mixer.clipAction(a));
-        //         //console.log(animationsMap);
-        //     });
-
-        //     mixers.push( mixer );
-
-        //     loadCharacter.push( model, mixer, animationsMap);
-
-        // });
-
-
-
-
-
-
-
-
-        // loader.load( 'models/gltf/Flamingo.glb', function ( gltf ) {
-        //      var mesh = gltf.scene.children[ 0 ];
-        //      var s = 0.35;
-        //      mesh.scale.set( s, s, s );
-        //      mesh.position.y = 35;
-        //      mesh.rotation.y = - 1;
-        //     mesh.castShadow = true;
-        //     mesh.receiveShadow = true;
-        //      scene.add( mesh );
-        //      var mixer = new THREE.AnimationMixer( mesh );
-        //      mixer.clipAction( gltf.animations[ 0 ] ).setDuration( 1 ).play();
-        //      mixers.push( mixer );
-        //  } );
-
-
-
-
         this.mixers = mixers;
 
 ////END Models Load
-
-
-
-
-
         this.state = {
             scene: scene,
             renderer: renderer,
@@ -164,11 +108,8 @@ class Tetra extends Component {
         this.BufferGeometry = new THREE.BufferGeometry();
 
 
-
         this.draw = 0;
         this.add = 0;
-
-
 
 
         this.modelLoaderState = 0;
@@ -177,19 +118,7 @@ class Tetra extends Component {
         // console.log(this.state.characterControls);
         // console.log(this.characterControls);
 
-
-        this.HealpixSphere = new HealpixSphere(12,12);
-        console.log(this.HealpixSphere);
-
-
-        this.HealpixSphereBG = new THREE.SphereGeometry(1);
-        console.log(this.HealpixSphereBG);
-        //this.materialH = new THREE.MeshBasicMaterial({ color: 0xffffff }); // Выберите подходящий материал
-        //this.healpixSphereMesh = new THREE.Mesh(this.HealpixSphere, this.materialH);
-
-        //scene.add(this.healpixSphereMesh); // Добавление объекта в сцену
-        
-        
+        this.HealpixSphere = new HEALPiX(0.75, 1);
 
     }
 
@@ -250,11 +179,25 @@ class Tetra extends Component {
 
 
         //HEALPIXSPHERE
-        const healpixSphereGeometry = new HealpixSphere(12, 12).geometry;
-        const materialHS = new THREE.MeshBasicMaterial({ color: 0xffffff }); // Выберите подходящий материал
-        const healpixSphereMesh = new THREE.Mesh(healpixSphereGeometry, materialHS);
-        console.log(healpixSphereMesh);
-        this.state.scene.add(healpixSphereMesh); // Добавление объекта в сцену
+
+        this.HealpixSphereGeo = this.HealpixSphere.geometry;
+        this.HealpixSphereGeo.attributes.position.normalized  = true;
+        //console.log(this.HealpixSphere);
+        //console.log(this.HealpixSphereGeo);
+        //this.materialH = new THREE.MeshBasicMaterial({ color: 0xffffff }); // Выберите подходящий материал
+        this.healpixSphereMesh = new THREE.Mesh(this.HealpixSphereGeo, this.HealpixSphere.materials);
+        //console.log(this.healpixSphereMesh);
+        this.state.scene.add(this.healpixSphereMesh); // Добавление объекта в сцену
+
+
+        // const healpixSphereGeometry = new HealpixSphere(12, 12).geometry;
+        // const materialHS = new THREE.MeshBasicMaterial({ color: 0xffffff }); // Выберите подходящий материал
+        // const healpixSphereMesh = new THREE.Mesh(healpixSphereGeometry, materialHS);
+        
+        // this.state.scene.add(healpixSphereMesh); // Добавление объекта в сцену
+        //console.log(this.state.scene);
+        
+        console.log(this.state.scene);
 
         // GROUND
         this.geometry = new THREE.PlaneBufferGeometry( 1000, 1000 );
@@ -301,15 +244,15 @@ class Tetra extends Component {
         //this.material1 = new THREE.MeshPhongMaterial( { color: 0xffffff, map: texture1 } );
         //this.material = new THREE.MeshPhongMaterial( { color: 0x03A9F4, specular: 0x050505 } );
         //this.material.color.set('#795548');
-        this.ground = new THREE.Mesh( this.geometry, this.materialStandard );
-        this.ground.name = 'GROUND';
-        this.ground.rotation.x = -Math.PI/2;
-        this.ground.position.y = 0;
-        this.ground.receiveShadow = true;
-        this.state.scene.add( this.ground );
+        // this.ground = new THREE.Mesh( this.geometry, this.materialStandard );
+        // this.ground.name = 'GROUND';
+        // this.ground.rotation.x = -Math.PI/2;
+        // this.ground.position.y = 0;
+        // this.ground.receiveShadow = true;
+        // this.state.scene.add( this.ground );
 
         // Icosahedron
-        // this.geometry = new THREE.IcosahedronBufferGeometry( 5, 0 );
+        // this.geometry = new THREE.IcosahedronBufferGeometry( 1, 0 );
         // this.material = new THREE.MeshPhongMaterial( { color: 0xffffff, emissive: 0x333333, flatShading: true } );
         // this.tetraGeo = new THREE.Mesh( this.geometry, this.material );
         // this.tetraGeo.name = 'Icosahedron';
@@ -352,7 +295,9 @@ class Tetra extends Component {
         this.modelLoader;
         this.userModelAdd = 0;
         this.userCharacterControls;
-        window.addEventListener("mousedown", this.onModelLoader.bind(this), false);
+        //window.addEventListener("mousedown", this.onModelLoader.bind(this), false);
+        window.addEventListener('keydown', this.onModelLoader.bind(this), false);
+          
 
 
         // if(this.loadCharacter[ 0 ]){
@@ -374,22 +319,27 @@ class Tetra extends Component {
     }
 
     onModelLoader ( event ) {
+        if (event.code === 'Space') { // Проверяем, была ли нажата клавиша пробела
+                // Здесь ваш код для обработки нажатия пробела
+                console.log('Пробел был нажат!');
+            
 
-        if(!this.modelLoaderState){
-            console.log('start loading user model')
-            this.modelLoader = new ModelLoader(this.socket.id, 'This model path', this.userModel);
-            //this.modelLoader = new ModelLoader("6smw7CQHifnUYE4BAAAC", 'This model path', this.userModel);
-            this.modelLoader.onLoading();
-            //console.log(loadContent)
-            this.modelLoaderState = 1;
-        } else {
+            if(!this.modelLoaderState){
+                console.log('start loading user model')
+                this.modelLoader = new ModelLoader(this.socket.id, 'This model path', this.userModel);
+                //this.modelLoader = new ModelLoader("6smw7CQHifnUYE4BAAAC", 'This model path', this.userModel);
+                this.modelLoader.onLoading();
+                //console.log(loadContent)
+                this.modelLoaderState = 1;
+            } else {
 
-            //console.log(this.modelLoader.userModel)
-            if(!this.userModelAdd){
-                this.state.scene.add(this.modelLoader.userModel[ 0 ])
-                this.mixers.push(this.modelLoader.userModel[ 1 ])
-                this.userCharacterControls = new CharacterControls( this.modelLoader.userModel[ 0 ], this.modelLoader.userModel[ 1 ], this.modelLoader.userModel[ 2 ], this.controls, this.camera, 'Idle', this.socket);
-                this.userModelAdd = 1;
+                //console.log(this.modelLoader.userModel)
+                if(!this.userModelAdd){
+                    this.state.scene.add(this.modelLoader.userModel[ 0 ])
+                    this.mixers.push(this.modelLoader.userModel[ 1 ])
+                    this.userCharacterControls = new CharacterControls( this.modelLoader.userModel[ 0 ], this.modelLoader.userModel[ 1 ], this.modelLoader.userModel[ 2 ], this.controls, this.camera, 'Idle', this.socket);
+                    this.userModelAdd = 1;
+                }
             }
         }
 
@@ -487,38 +437,14 @@ class Tetra extends Component {
         }
     }
 
-
-
-/*     updateScreenSize() {
-        console.log( this.container );
-        let up_w = this.container.clientWidth;
-        let up_h = this.container.clientHeight;
-        this.camera.aspect = up_w / up_h;
-        this.camera.updateProjectionMatrix();
-        //this.setState({ clientWidth: up_w })
-        //this.state.clientWidth.setSize({ clientWidth: up_w });
-        //this.setState({ clientHeight: up_h })
-        this.state.renderer.setSize( up_w, up_h );
-
-    } */
-
     
     updateScreenSize() {
         let up_w = window.innerWidth;
         let up_h = window.innerHeight-100;
         this.camera.aspect = up_w / up_h;
-
-
-
-
-
-
         this.camera.updateProjectionMatrix();
         this.state.renderer.setSize( up_w, up_h );
-
     }
-
-
 
     getContainerSize = (container) => {
         return ({
@@ -542,12 +468,11 @@ class Tetra extends Component {
         })
     }
 
-
     start = () => {
         if (!this.frameId) {
           this.frameId = requestAnimationFrame(this.animate)
         }
-        //this.drawCell()
+        //this.HEALPiX(12,12)
     }
 
     stop = () => {
@@ -555,15 +480,10 @@ class Tetra extends Component {
     }
 
     animate = () => {
-
-
-
         this.delta = this.clock.getDelta();
         this.timer = Date.now() * 0.01;
 
-
         for ( const mixer of this.mixers ) mixer.update( this.delta );
-
 
         let userMixerUpdateDelta = this.delta;
         if (this.userCharacterControls) {
@@ -574,71 +494,12 @@ class Tetra extends Component {
 
          }
 
-
-            //requestAnimationFrame(animate);
-
-
-
-        // this.fbx.forEach(({mixer}) => {mixer.update(this.clock.getDelta());});
-
-        // if ( this.mixers.length > 0 ) {
-        //     for ( var i = 0; i < this.mixers.length; i ++ ) {
-        //         this.mixers[ i ].update( this.clock.getDelta() );
-        //     }
-        // }
-
-        /*for ( var i = 0; i < this.mixers.length; i ++ ) {
-            this.mixers[ i ].update( this.delta );
-        }*/
-
-
-
-        // this.tetraGeo.position.set(
-        //     Math.cos( this.timer * 0.1 ) * 30,
-        //     Math.abs( Math.cos( this.timer * 0.2 ) ) * 20 + 5,
-        //     Math.sin( this.timer * 0.1 ) * 30
-        // );
-
-        // this.tetraGeo.rotation.y = ( Math.PI / 2 ) - this.timer * 0.1;
-        // this.tetraGeo.rotation.z = this.timer * 0.8;
-        //console.log(this.mixers)
-
-
-        //this.state.stats.update();
         this.frameId = window.requestAnimationFrame(this.animate)
         this.renderScene(this.delta)
-
 
     }
 
     renderScene = () => {
-
-        // this.raycaster.setFromCamera( this.state.mouse, this.state.camera );
-
-        // this.intersects = this.raycaster.intersectObjects( this.state.scene.children );
-
-        // if ( this.intersects.length > 0 ) {
-        //     if(this.intersects[ 0 ].object.layers.mask == 4){
-        //         if ( this.INTERSECTED != this.intersects[ 0 ].object ) {
-
-        //                 if ( this.INTERSECTED ) this.INTERSECTED.material.emissive.setHex( this.INTERSECTED.currentHex );
-
-        //                 this.INTERSECTED = this.intersects[ 0 ].object;
-        //                 this.INTERSECTED.currentHex = this.INTERSECTED.material.emissive.getHex();
-        //                 this.INTERSECTED.material.emissive.setHex( 0x16a085 );
-        //                 //console.log(this.INTERSECTED)
-        //         }
-        //     } else {
-        //         if ( this.INTERSECTED ) this.INTERSECTED.material.emissive.setHex( this.INTERSECTED.currentHex );
-
-        //         this.INTERSECTED = null;
-        //     }
-
-        // } else {
-        //     if ( this.INTERSECTED ) this.INTERSECTED.material.emissive.setHex( this.INTERSECTED.currentHex );
-
-        //     this.INTERSECTED = null;
-        // }
 
         this.state.renderer.render(this.state.scene, this.camera)
     }

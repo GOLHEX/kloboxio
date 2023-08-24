@@ -76,9 +76,12 @@ class Env extends Component {
     }
   }
 
+  
+
   render() {
     return (
 
+      //<Tetra io={this.socket} onClick={this.handleClick} userPos={this.userPos} usercolor="blue" />
       <Tetra io={this.socket} onClick={this.handleClick} userPos={this.userPos} usercolor="blue" />
       ///<GOL className="GOL" io={this.socket} onClick={this.handleClick} userPos={this.userPos} usercolor="blue"/>
 

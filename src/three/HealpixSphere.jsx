@@ -40,22 +40,24 @@ class HealpixSphere {
     ];
 
     const uvs = [
-      [[1, 0], [0, 0], [1, 1]], [[0, 0], [0, 1], [1, 1]],
-      [[1, 0], [0, 0], [1, 1]], [[0, 0], [0, 1], [1, 1]],
-      [[1, 0], [0, 0], [1, 1]], [[0, 0], [0, 1], [1, 1]],
-      [[1, 0], [0, 0], [1, 1]], [[0, 0], [0, 1], [1, 1]],
+      [1, 0, 0, 0, 1, 1], [0, 0, 0, 1, 1, 1],
+      [1, 0, 0, 0, 1, 1], [0, 0, 0, 1, 1, 1],
+      [1, 0, 0, 0, 1, 1], [0, 0, 0, 1, 1, 1],
+      [1, 0, 0, 0, 1, 1], [0, 0, 0, 1, 1, 1],
 
-      [[1, 0], [0, 0], [0, 1]], [[1, 0], [0, 1], [1, 1]],
-      [[1, 0], [0, 0], [0, 1]], [[1, 0], [0, 1], [1, 1]],
-      [[1, 0], [0, 0], [0, 1]], [[1, 0], [0, 1], [1, 1]],
-      [[1, 0], [0, 0], [0, 1]], [[1, 0], [0, 1], [1, 1]],
+      [1, 0, 0, 0, 0, 1], [1, 0, 0, 1, 1, 1],
+      [1, 0, 0, 0, 0, 1], [1, 0, 0, 1, 1, 1],
+      [1, 0, 0, 0, 0, 1], [1, 0, 0, 1, 1, 1],
+      [1, 0, 0, 0, 0, 1], [1, 0, 0, 1, 1, 1],
 
-      [[1, 0], [0, 0], [1, 1]], [[0, 0], [0, 1], [1, 1]],
-      [[1, 0], [0, 0], [1, 1]], [[0, 0], [0, 1], [1, 1]],
-      [[1, 0], [0, 0], [1, 1]], [[0, 0], [0, 1], [1, 1]],
-      [[1, 0], [0, 0], [1, 1]], [[0, 0], [0, 1], [1, 1]]
+      [1, 0, 0, 0, 1, 1], [0, 0, 0, 1, 1, 1],
+      [1, 0, 0, 0, 1, 1], [0, 0, 0, 1, 1, 1],
+      [1, 0, 0, 0, 1, 1], [0, 0, 0, 1, 1, 1],
+      [1, 0, 0, 0, 1, 1], [0, 0, 0, 1, 1, 1]
     ];
-    const uv = new Float32Array([1,0], [0,0], [1,1], [0,0], [0,1], [1,1], [1,0], [0,0], [0,1], [1,1], [1,0], [0,0], [0,1], [1,1], [1,0], [0,0], [0,1], [1,1], [1,0], [0,0], [0,1], [1,1], [1,0], [0,0], [0,1], [1,1], [1,0], [0,0], [0,1], [1,1]);
+
+
+
 
     const geometry = new THREE.BufferGeometry();
     console.log(JSON.stringify(geometry));
@@ -76,6 +78,7 @@ class HealpixSphere {
       project(v2, faceIndex);
       project(v3, faceIndex);
       geometry.setIndex([index, index + 1, index + 2]);
+      console.log(geometry);
     }
 
     for (let i = 0, l = vertices.length; i < l; i++) {
@@ -93,11 +96,22 @@ class HealpixSphere {
       );
     }
 
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
-    geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvsFlat, 2));
+    
+    // apply radius
+    // for (let i = 0, l = geometry.vertices.length; i < l; i++) {
+    //   geometry.vertices[i].multiplyScalar(radius);
+    // }
 
-    geometry.computeVertexNormals();
+
+
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    //console.log(JSON.stringify(positions));
+    geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+    //console.log(JSON.stringify(normals));
+    geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvsFlat, 2));
+    console.log(JSON.stringify(geometry));
+
+    //geometry.computeVertexNormals();
     geometry.computeBoundingSphere();
 
     return geometry;
