@@ -18,9 +18,9 @@ class Env extends Component {
       color: '#795548',
       rnd: 14,
       colors: [
-                  '#F44336',
+                  '#24A14E',
                   '#E91E63',
-                  '#9C27B0',
+                  '#92329B',
                   '#673AB7',
                   '#3F51B5',
                   '#2196F3',
@@ -82,7 +82,7 @@ class Env extends Component {
     return (
 
       //<Tetra io={this.socket} onClick={this.handleClick} userPos={this.userPos} usercolor="blue" />
-      <Tetra io={this.socket} onClick={this.handleClick} userPos={this.userPos} usercolor="blue" />
+      <Tetra io={this.socket} onClick={this.handleClick} userPos={this.userPos} usercolor="blue" healpixProps={this.props.healpixProps} />
       ///<GOL className="GOL" io={this.socket} onClick={this.handleClick} userPos={this.userPos} usercolor="blue"/>
 
     )

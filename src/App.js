@@ -5,6 +5,7 @@ import W from "./wrapper/W"
 import GOL from "./three/GameOfLife"
 import Play from "./components/Play"
 import Genocide from "./components/Genocide"
+import ValueToggleButton from "./components/ValueToggleButton"
 import './App.css'
 
 
@@ -13,7 +14,13 @@ import './App.css'
 class App extends Component {
   constructor(props){
     super(props);
-    this.state = {isPlay: false};
+    this.state = {
+      healpixProps: {
+        radius: 1,
+        detail: 1
+      },
+      isPlay: false,
+    };
     this._playClick = this._playClick.bind(this);
   }
   authenticate(){
@@ -32,16 +39,27 @@ class App extends Component {
       }
     })
   }
+
+  _playClick = (e) => {
+      e.preventDefault();
+      console.log('You clicked on  Play.');
+      // this.setState(prevState => ({
+      //   isPlayOn: !prevState.isPlayOn
+      // }));
+  }
+
+  handleDetailChange = (newDetail) => {
+    console.log("Значение healpixProps.detail изменилось:", newDetail);
+    this.setState(prevState => ({
+      healpixProps: {
+        ...prevState.healpixProps,
+        detail: newDetail,
+      },
+    }));
+  }
   componentWillUnmount() {
 
   }
-    _playClick = (e) => {
-        e.preventDefault();
-        console.log('You clicked on  Play.');
-        // this.setState(prevState => ({
-        //   isPlayOn: !prevState.isPlayOn
-        // }));
-      }
   render() {
     const headerStyle = {
         display: "flex",
@@ -59,8 +77,15 @@ class App extends Component {
                     isPlay={this.state.isPlayOn}
                 />
                 <Genocide />
+                <ValueToggleButton
+                  initialValue={this.state.healpixProps.detail}
+                  minValue={0}
+                  maxValue={5}
+                  step={1}
+                  onValueChange={this.handleDetailChange}
+                />
             </div>
-        <Env  />
+        <Env  healpixProps={this.state.healpixProps} />
 
         <div className="App-footer">
             GNA

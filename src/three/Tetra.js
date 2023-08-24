@@ -16,6 +16,7 @@ import * as healpix from '@hscmap/healpix';
 import HEALPiX from './healpix';
 import W from "../wrapper/W"
 import { Material } from "three";
+//import { randFloat } from "./three.js/src/math/MathUtils";
 
 
 
@@ -34,9 +35,9 @@ class Tetra extends Component {
         const controls = new OrbitControls( camera, renderer.domElement );
         controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
         controls.dampingFactor = 0.25;
-        //controls.screenSpacePanning = false;
-        controls.minDistance = 1;
-        controls.maxDistance = 100;
+        controls.screenSpacePanning = false;
+        controls.minDistance = 1.5;
+        controls.maxDistance = 15;
 
 
         controls.enablePan = false;
@@ -56,6 +57,7 @@ class Tetra extends Component {
             lastPosition: {},
             clientWidth: 256,
             clientHeight: 256,
+            HEALPiX: props.healpixProps || {radius: 1, detail: 1},
             mouse: {
                 x:0,
                 y:0
@@ -70,7 +72,6 @@ class Tetra extends Component {
                 y:0
             },
             round: 5,
-
             cd: 0x3498db
         };
         this.camera = camera;
@@ -118,10 +119,13 @@ class Tetra extends Component {
         // console.log(this.state.characterControls);
         // console.log(this.characterControls);
 
-        this.HealpixSphere = new HEALPiX(0.75, 1);
+        //this.HealpixSphere = new HEALPiX(this.state.HEALPiX.radius, this.state.HEALPiX.detail);
 
     }
-
+    clamp(value, min, max) {
+        if(value === undefined) randFloat(0.25, 5);
+        return Math.min(Math.max(value, min), max);
+    }
     componentDidMount() {
 
         // LIGHTS
@@ -179,15 +183,17 @@ class Tetra extends Component {
 
 
         //HEALPIXSPHERE
+        this.updateSphere();
+        //this.HealpixSphere = new HEALPiX(this.state.HEALPiX.radius, this.state.HEALPiX.detail);
 
-        this.HealpixSphereGeo = this.HealpixSphere.geometry;
-        this.HealpixSphereGeo.attributes.position.normalized  = true;
-        //console.log(this.HealpixSphere);
-        //console.log(this.HealpixSphereGeo);
-        //this.materialH = new THREE.MeshBasicMaterial({ color: 0xffffff }); // Выберите подходящий материал
-        this.healpixSphereMesh = new THREE.Mesh(this.HealpixSphereGeo, this.HealpixSphere.materials);
-        //console.log(this.healpixSphereMesh);
-        this.state.scene.add(this.healpixSphereMesh); // Добавление объекта в сцену
+
+        // this.HealpixSphereGeo = this.HealpixSphere.geometry;
+        // this.HealpixSphereGeo.attributes.position.normalized  = true;
+        // this.healpixSphereMesh = new THREE.Mesh(this.HealpixSphereGeo, this.HealpixSphere.materials);
+        // this.healpixSphereMesh.rotation.y = -Math.PI/2;
+        // this.healpixSphereMesh.rotation.x = Math.PI/1;
+        // this.healpixSphereMesh.rotation.z = Math.PI/1;
+        // this.state.scene.add(this.healpixSphereMesh); // Добавление объекта в сцену
 
 
         // const healpixSphereGeometry = new HealpixSphere(12, 12).geometry;
@@ -197,7 +203,7 @@ class Tetra extends Component {
         // this.state.scene.add(healpixSphereMesh); // Добавление объекта в сцену
         //console.log(this.state.scene);
         
-        console.log(this.state.scene);
+        //console.log(this.state.scene);
 
         // GROUND
         this.geometry = new THREE.PlaneBufferGeometry( 1000, 1000 );
@@ -318,6 +324,46 @@ class Tetra extends Component {
 
     }
 
+
+      
+    updateSphere() {
+        // Здесь вы можете обновить свою сферу с использованием this.state.HEALPiX или других значений
+        this.HealpixSphere = new HEALPiX(this.state.HEALPiX.radius, this.state.HEALPiX.detail);
+        console.log('HealpixSphere updated!');
+
+
+        this.state.scene.remove(this.healpixSphereMesh);
+
+        this.HealpixSphereGeo = this.HealpixSphere.geometry;
+        this.HealpixSphereGeo.attributes.position.normalized  = true;
+        this.healpixSphereMesh = new THREE.Mesh(this.HealpixSphereGeo, this.HealpixSphere.materials);
+        this.healpixSphereMesh.rotation.y = -Math.PI/1;
+        this.healpixSphereMesh.rotation.x = Math.PI/1;
+        this.healpixSphereMesh.rotation.z = Math.PI/1;
+
+
+        this.healpixSphereMesh.updateMatrix();
+        this.state.scene.add(this.healpixSphereMesh); // Добавление объекта в сцену
+
+
+
+        // Остальная логика обновления сферы
+        this.camera.updateProjectionMatrix();
+
+        // Убедитесь, что ваш рендерер перерисовывает сцену
+        this.state.renderer.render(this.state.scene, this.camera);
+    }
+      
+
+    componentDidUpdate(prevProps) {
+        if (prevProps.healpixProps.detail !== this.props.healpixProps.detail) {
+          this.setState({ HEALPiX: this.props.healpixProps }, () => {
+            this.updateSphere(); // Вызывайте метод обновления сферы после установки состояния
+          });
+        }
+    }
+
+      
     onModelLoader ( event ) {
         if (event.code === 'Space') { // Проверяем, была ли нажата клавиша пробела
                 // Здесь ваш код для обработки нажатия пробела

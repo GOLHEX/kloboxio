@@ -1,3 +1,4 @@
+import { random } from "lodash";
 import * as THREE from "three";
 
 export default class HEALPiX {
@@ -27,30 +28,49 @@ export default class HEALPiX {
         this.positionAttribute = [];
         this.geometry = new THREE.BufferGeometry();
         this.geometry.vertices = [];
-        //this.HEALPiX = new THREE.BufferGeometry();
         this.geometry.name = 'HEALPiX';
         this.uv = [];
-        //console.log(JSON.stringify(this.geometry));
+        this.colors = [
+            [0x33D5C0, 0xE68D78],
+            [0x932323, 0x434770],
+            [0xCF9F6C, 0xFE4C04],
+            [0x3F403B, 0xD93E31],
+            [0x210038, 0xE06C50],
+            [0x5C9B52, 0xD9C02E],
+            [0xA8C65D, 0xF44085],
+            [0xF94302, 0x44303B]
+          ];
+        this.shuffledColors = this.shuffle(this.colors.concat(this.colors)); // Дублируем массив и перемешиваем
+
+        this.materials = [];
+
+        for (let i = 0; i < 12; i++) {
+            this.materials.push(new THREE.MeshBasicMaterial({ color: random(...this.shuffledColors[i]) }));
+          }
+        // const colors = [
+        //   [0x33D5C0, 0xE68D78],
+        //   [0x932323, 0x434770],
+        //   [0xCF9F6C, 0xFE4C04],
+        //   [0x3F403B, 0xD93E31],
+        //   [0x210038, 0xE06C50],
+        //   [0x5C9B52, 0xD9C02E],
+        //   [0xA8C65D, 0xF44085],
+        //   [0xF94302, 0x44303B]
+        // ];
         
-        this.materials = [
-            new THREE.MeshBasicMaterial({ color: 0xF44336 }), 
-            new THREE.MeshBasicMaterial({ color: 0xE91E63 }), 
-            new THREE.MeshBasicMaterial({ color: 0x9C27B0 }), 
-            new THREE.MeshBasicMaterial({ color: 0x673AB7 }), 
-
-            new THREE.MeshBasicMaterial({ color: 0x03A9F4 }), 
-            new THREE.MeshBasicMaterial({ color: 0x4CAF50 }), 
-            new THREE.MeshBasicMaterial({ color: 0x8BC34A }),
-            new THREE.MeshBasicMaterial({ color: 0xCDDC39 }),
-
-            new THREE.MeshBasicMaterial({ color: 0x795548 }),
-            new THREE.MeshBasicMaterial({ color: 0x9E9E9E }),
-            new THREE.MeshBasicMaterial({ color: 0xF44336 }),
-            new THREE.MeshBasicMaterial({ color: 0xF44336 })
-        ];
+        // for (let i = 0; i < 12; i++) {
+        //   this.materials.push(new THREE.MeshBasicMaterial({ color: random(...colors[i % colors.length]) }));
+        // }
         this.createGeometry();
     }
 
+    shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [array[i], array[j]] = [array[j], array[i]]; // меняем местами элементы
+        }
+        return array;
+    }
 
     project = (v) => {
         v = v.normalize().clone();
@@ -92,23 +112,6 @@ export default class HEALPiX {
                     this.normals.push(normal.x, normal.y, normal.z);
                     this.normals.push(normal.x, normal.y, normal.z);
                     this.normals.push(normal.x, normal.y, normal.z);
-
-                    // Добавление групп материалов
-                    if (this.materials.length > 1) {
-                        //console.log("index L: "+this.indices.length);
-                        //let srt = this.indices.length.toString();
-                        this.geometry.addGroup(this.indices.length - 3, +3, matIdx);
-                    }
-
-
-                    // Добавление вершин
-                   // v1.index = this.vertices.length / 3;
-                   // v2.index = this.vertices.length / 3 + 1;
-                   // v3.index = this.vertices.length / 3 + 2;
-            
-                    this.verticesSubdivided.push(v1.x, v1.y, v1.z);
-                    this.verticesSubdivided.push(v2.x, v2.y, v2.z);
-                    this.verticesSubdivided.push(v3.x, v3.y, v3.z);
         
                     // Добавление индексов
                     this.indices.push(v1.index, v2.index, v3.index);
@@ -119,28 +122,18 @@ export default class HEALPiX {
                     this.uvs.push(uv3.x, uv3.y);
 
 
-                    ///HEALPiX Geometry START
-                    // this.HEALPiX.vertices.push(v1.x, v1.y, v1.z);
-                    // this.HEALPiX.vertices.push(v2.x, v2.y, v2.z);
-                    // this.HEALPiX.vertices.push(v3.x, v3.y, v3.z);
-            
-                    // Добавление индексов
-                    // this.HEALPiX.indices.push(v1.index, v2.index, v3.index);
-                    // Добавление нормали
-                    // this.HEALPiX.normals.push(normal.x, normal.y, normal.z);
-                    // this.HEALPiX.normals.push(normal.x, normal.y, normal.z);
-                    // this.HEALPiX.normals.push(normal.x, normal.y, normal.z);
-                    ///HEALPiX Geometry END
 
-            // var face = new THREE.Face3(v1.index, v2.index, v3.index, [v1.clone(), v2.clone(), v3.clone()]);
-            // face.centroid.add(v1).add(v2).add(v3).divideScalar(3);
-            // face.normal = face.centroid.clone().normalize();
-            // face.materialIndex = matIdx;
-            // geometry.faces.push(face);
-            // geometry.faceVertexUvs[0].push([uv1.clone(), uv2.clone(), uv3.clone()]);
+                    // Добавление групп материалов
+                    if (this.materials.length > 1) {
+                        this.geometry.addGroup(this.indices.length - 3, +3, matIdx);
+                    }
+            
+                    this.verticesSubdivided.push(v1.x, v1.y, v1.z);
+                    this.verticesSubdivided.push(v2.x, v2.y, v2.z);
+                    this.verticesSubdivided.push(v3.x, v3.y, v3.z);
         } else {
-            console.log("vertx: "+v1, v2, v3, "uvs: "+uv1, uv2, uv3, "matindex: "+matIdx);
-        //     // split face into 4 smaller faces
+            //console.log("vertx: "+v1, v2, v3, "uvs: "+uv1, uv2, uv3, "matindex: "+matIdx);
+            // split face into 4 smaller faces
             detail -= 1;
             this.makeFace(v1, this.midpoint(v1, v2), this.midpoint(v1, v3), uv1, this.midpointUV(uv1, uv2), this.midpointUV(uv1, uv3), matIdx, detail); // top quadrant
             this.makeFace(this.midpoint(v1, v2), v2, this.midpoint(v2, v3), this.midpointUV(uv1, uv2), uv2, this.midpointUV(uv2, uv3), matIdx, detail); // left quadrant
