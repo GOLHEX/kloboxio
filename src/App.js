@@ -16,8 +16,8 @@ class App extends Component {
     super(props);
     this.state = {
       healpixProps: {
-        radius: 1,
-        detail: 1
+        radius: 200,
+        detail: 0
       },
       isPlay: false,
     };

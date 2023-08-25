@@ -16,7 +16,8 @@ import * as healpix from '@hscmap/healpix';
 import HEALPiX from './healpix';
 import W from "../wrapper/W"
 import { Material } from "three";
-//import { randFloat } from "./three.js/src/math/MathUtils";
+//import { randInt } from "./three/src/math/mathutils";
+import { randFloat, randInt } from "./three.js/src/math/MathUtils";
 
 
 
@@ -25,7 +26,7 @@ class Tetra extends Component {
         super(props);
         const scene = new THREE.Scene();
 
-        const camera =  new THREE.PerspectiveCamera( 20, 240 / 135, 0.01, 2000 ) ;
+        const camera =  new THREE.PerspectiveCamera( 20, 240 / 135, 0.01, 10000 ) ;
         camera.position.y = 5;
         camera.position.z = 5;
         camera.position.x = 0;
@@ -33,15 +34,15 @@ class Tetra extends Component {
         const renderer = new THREE.WebGLRenderer({alpha: false, antialias: true });
 
         const controls = new OrbitControls( camera, renderer.domElement );
-        controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
+        controls.enableDamping = false; // an animation loop is required when either damping or auto-rotation are enabled
         controls.dampingFactor = 0.25;
-        controls.screenSpacePanning = false;
-        controls.minDistance = 1.5;
-        controls.maxDistance = 15;
+        controls.screenSpacePanning = true;
+        controls.minDistance = 2;
+        controls.maxDistance = 100;
 
 
-        controls.enablePan = false;
-        controls.maxPolarAngle = Math.PI / 2 - 0.05;
+        controls.enablePan = true;
+        controls.maxPolarAngle = Math.PI /1.1 + 0.05;
         controls.update();
         this.userPos=this.props.userPos;
         this.lastPosition;
@@ -129,7 +130,7 @@ class Tetra extends Component {
     componentDidMount() {
 
         // LIGHTS
-        this.hemiLight = new THREE.HemisphereLight( 0xffffff, 0xffffff, 1 );
+        this.hemiLight = new THREE.HemisphereLight( 0xafcbd3, 0xb38e8f, 0.3 );/////#afcbd3/////##b38e8f
         this.hemiLight.color.setHSL( 0.6, 1, 0.6 );
         this.hemiLight.groundColor.setHSL( 0.095, 1, 0.75 );
         this.hemiLight.position.set( 0, 50, 0 );
@@ -137,23 +138,24 @@ class Tetra extends Component {
         this.hemiLightHelper = new THREE.HemisphereLightHelper( this.hemiLight, 10 );
         this.state.scene.add( this.hemiLightHelper );
 
-        this.dirLight = new THREE.DirectionalLight( 0xffffff, 1 );
-        this.dirLight.color.setHSL( 0.1, 1, 0.95 );
-        this.dirLight.position.set( -2, 1.75, -1 );
-        this.dirLight.position.multiplyScalar( 30 );
-        this.state.scene.add( this.dirLight );
+        this.dirLight = new THREE.DirectionalLight( 0xDF6717, 1 ); /////#b5937d
+        this.dirLight.color.setHSL( 0.1, 0.6, 0.95 );
+        this.dirLight.position.set( -5, 1, 3 );
+        this.dirLight.position.multiplyScalar( 150);
+        
         this.dirLight.castShadow = true;
         this.dirLight.shadow.mapSize.width = 4096;
         this.dirLight.shadow.mapSize.height = 4096;
-        this.shadowDistance = 200;
+        this.shadowDistance = 20000;
         this.dirLight.shadow.camera.left = -this.shadowDistance;
         this.dirLight.shadow.camera.right = this.shadowDistance;
         this.dirLight.shadow.camera.top = this.shadowDistance;
         this.dirLight.shadow.camera.bottom = -this.shadowDistance;
-        this.dirLight.shadow.camera.far = 3500;
+        this.dirLight.shadow.camera.far = 2500;
         this.dirLight.shadow.bias = -0.00001;
-        this.dirLightHeper = new THREE.DirectionalLightHelper( this.dirLight, 10 );
-        this.state.scene.add( this.dirLightHeper );
+        this.state.scene.add( this.dirLight );
+        // this.dirLightHeper = new THREE.DirectionalLightHelper( this.dirLight, 10 );
+        // this.state.scene.add( this.dirLightHeper );
 
         // SKYDOME
         this.vertexShader = document.getElementById( 'vertexShader' ).textContent;
@@ -161,7 +163,7 @@ class Tetra extends Component {
         this.uniforms = {
             topColor:    { value: new THREE.Color( 0xD34511 ) }, 
             bottomColor: { value: new THREE.Color( 0x362D6A ) }, 
-            offset:      { value: -20 },
+            offset:      { value: -25 },
             exponent:    { value: 0.8 }
         };
         this.uniforms.topColor.value.copy( this.hemiLight.color );
@@ -310,30 +312,52 @@ class Tetra extends Component {
         // Здесь вы можете обновить свою сферу с использованием this.state.HEALPiX или других значений
         this.HealpixSphere = new HEALPiX(this.state.HEALPiX.radius, this.state.HEALPiX.detail);
         console.log('HealpixSphere updated!');
+        console.log(this.HealpixSphere);
 
         this.state.scene.remove(this.healpixSphereMesh);
 
         this.HealpixSphereGeo = this.HealpixSphere.geometry;
-        this.HealpixSphereGeo.attributes.position.normalized  = true;
-        this.HealpixSphereGeo.attributes.uv.normalized  = true;
+        //this.HealpixSphereGeo.attributes.position.normalized  = true;
+        //this.HealpixSphereGeo.attributes.uv.normalized  = true;
         this.HealpixSphereGeo.computeVertexNormals();
+        
 
-        this.Ironmaterials = [];
-        for (let i = 0; i < 12; i++) {
-            //console.log('textures/desert/desert-'+parseInt([i])+'.jpg')
-            this.Ironmaterials.push(new THREE.MeshBasicMaterial({ 
-                map: new THREE.TextureLoader().load('textures/iron/iron-'+String(i).padStart(2, '0')+'.jpg'),
-                side: THREE.DoubleSide }));
-        }
-        this.healpixSphereMesh = new THREE.Mesh(this.HealpixSphereGeo, this.Ironmaterials);
-        // this.Desertmaterials = [];
+
+        // this.IronPhysicalMaterials = [];
+
         // for (let i = 0; i < 12; i++) {
         //     //console.log('textures/desert/desert-'+parseInt([i])+'.jpg')
-        //     this.Desertmaterials.push(new THREE.MeshBasicMaterial({ 
-        //         map: new THREE.TextureLoader().load('textures/desert/desert-'+String(i).padStart(2, '0')+'.jpg'),
+        //     this.IronPhysicalMaterials.push(new THREE.MeshPhysicalMaterial({
+        //         color: 0x8F714A,
+        //         map: new THREE.TextureLoader().load('textures/iron/iron-'+String(i).padStart(2, '0')+'.jpg'),
+        //         displacementMap: new THREE.TextureLoader().load('textures/iron/pbr/iron-'+String(i).padStart(2, '0')+'.jpg_specular.tif'),
+        //         displacementScale: 0.1,
+        //         displacementBias: 0,
+        //         roughness: 0,
+        //         metalness: 0,
+        //         reflectivity: 0,
+        //         normalMap: new THREE.TextureLoader().load('textures/iron/pbr/iron-'+String(i).padStart(2, '0')+'.jpg_normal.tif'),
+        //         normalScale: new THREE.Vector2(0.1, -0.1),
+        //         side: THREE.DoubleSide
+        //      }));
+        // }
+        //this.healpixSphereMesh = new THREE.Mesh(this.HealpixSphereGeo, this.IronPhysicalMaterials);
+        // this.Ironmaterials = [];
+        // for (let i = 0; i < 12; i++) {
+        //     //console.log('textures/desert/desert-'+parseInt([i])+'.jpg')
+        //     this.Ironmaterials.push(new THREE.MeshBasicMaterial({ 
+        //         map: new THREE.TextureLoader().load('textures/iron/iron-'+String(i).padStart(2, '0')+'.jpg'),
         //         side: THREE.DoubleSide }));
         // }
-        // this.healpixSphereMesh = new THREE.Mesh(this.HealpixSphereGeo, this.Desertmaterials);
+        //this.healpixSphereMesh = new THREE.Mesh(this.HealpixSphereGeo, this.matStandard);
+        this.Desertmaterials = [];
+        for (let i = 0; i < 12; i++) {
+            //console.log('textures/desert/desert-'+parseInt([i])+'.jpg')
+            this.Desertmaterials.push(new THREE.MeshStandardMaterial( { 
+                map: new THREE.TextureLoader().load('textures/desert/desert-'+String(i).padStart(2, '0')+'.jpg'),
+                side: THREE.DoubleSide }));
+        }
+        this.healpixSphereMesh = new THREE.Mesh(this.HealpixSphereGeo, this.Desertmaterials);
 
         // this.CMBmaterials = [];
         // for (let i = 0; i < 12; i++) {
@@ -347,12 +371,12 @@ class Tetra extends Component {
         //     map: new THREE.TextureLoader().load('textures/uv_grid_opengl.jpg'), // Загрузите текстуру с UV-сеткой
         //     side: THREE.DoubleSide
         // });
-        //this.healpixSphereMesh = new THREE.Mesh(this.HealpixSphereGeo, this.uvMaterial);
+        // this.healpixSphereMesh = new THREE.Mesh(this.HealpixSphereGeo, this.uvMaterial);
         //Random Colors
         //this.healpixSphereMesh = new THREE.Mesh(this.HealpixSphereGeo, this.HealpixSphere.materials);
-        //this.healpixSphereMesh.rotation.y = -Math.PI/1;
-        //this.healpixSphereMesh.rotation.x = Math.PI/1;
-        //this.healpixSphereMesh.rotation.z = Math.PI/1;
+        this.healpixSphereMesh.rotation.y = -Math.PI/1;
+        this.healpixSphereMesh.rotation.x = Math.PI/1;
+        this.healpixSphereMesh.rotation.z = Math.PI/1;
         this.healpixSphereMesh.updateMatrix();
         this.state.scene.add(this.healpixSphereMesh); // Добавление объекта в сцену
 
